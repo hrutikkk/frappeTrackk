@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import axiosInstance from "../api/axiosInstance";
 import toast from "react-hot-toast";
+import { useTimerStore } from "./timerStore";
 
 export const useAuthStore = create((set) => ({
     user: null,
@@ -8,7 +9,8 @@ export const useAuthStore = create((set) => ({
     isAuthenticated: false,
     error: null,
     projects: [],
-    task:[],
+    task: [],
+    timeSheet: [],
 
     // login: async (apiKey, apiSecret) => {
     //     set({ authLoading: true, error: null });
@@ -69,10 +71,15 @@ export const useAuthStore = create((set) => ({
             if (data?.message?.success) {
                 localStorage.removeItem("creds")
                 set({ user: data.message.user, isAuthenticated: true });
+
                 const creds = [
                     { "apiKey": apiKey },
                     { "apiSecret": apiSecret }
                 ]
+                await window.electronAPI.saveCredentials(apiKey, apiSecret)
+                const response = await window.electronAPI.getCredentials()
+                console.log("getting response from main.js: ", response)
+
                 localStorage.setItem("creds", JSON.stringify(creds))
                 toast.success("Profile fetched successfully")
                 return true;
@@ -87,8 +94,8 @@ export const useAuthStore = create((set) => ({
     getProjects: async () => {
         try {
             // apiSecret
-            const [{ apiKey }, {apiSecret}] = JSON.parse(localStorage.getItem("creds"));
-            
+            const [{ apiKey }, { apiSecret }] = JSON.parse(localStorage.getItem("creds"));
+
             console.log(apiKey, apiSecret)
 
             const res = await axiosInstance.get(
@@ -105,7 +112,7 @@ export const useAuthStore = create((set) => ({
 
             if (data?.message?.status) {
                 set({ projects: data.message.data });
-                toast.success("Projects fetched successfully")
+                // toast.success("Projects fetched successfully")
                 return true;
             }
             toast.error("Unable to fetch projects")
@@ -118,8 +125,8 @@ export const useAuthStore = create((set) => ({
         console.log("hitting get_task")
         try {
             // apiSecret
-            const [{ apiKey }, {apiSecret}] = JSON.parse(localStorage.getItem("creds"));
-            
+            const [{ apiKey }, { apiSecret }] = JSON.parse(localStorage.getItem("creds"));
+
             console.log(apiKey, apiSecret)
 
             const res = await axiosInstance.get(
@@ -136,7 +143,7 @@ export const useAuthStore = create((set) => ({
 
             if (data?.message?.status) {
                 set({ task: data.message.data });
-                toast.success("Task fetched successfully")
+                // toast.success("Task fetched successfully")
                 return true;
             }
             toast.error("Unable to fetch tasks")
@@ -145,6 +152,82 @@ export const useAuthStore = create((set) => ({
             console.error("Projects fetch failed:", err);
         }
     },
+    getTimeSheetList: async (task_id) => {
+        console.log("hitting timesheet")
+        try {
+            // apiSecret
+            const [{ apiKey }, { apiSecret }] = JSON.parse(localStorage.getItem("creds"));
+
+            console.log(apiKey, apiSecret)
+
+            const res = await axiosInstance.get(
+                `api/method/frappetrack.api.timesheet.get_timesheet_by_task?task_id=${task_id}`,
+                {
+                    headers: {
+                        'Authorization': `token ${apiKey}:${apiSecret}`,
+                    },
+                }
+            );
+
+            const data = res.data;
+            console.log("Timesheet response:", data);
+
+            if (data?.message?.status) {
+                set({ timeSheet: data.message.data });
+                // toast.success("Time fetched successfully")
+                return true;
+            }
+            toast.error("Unable to fetch tasks")
+            return false
+        } catch (err) {
+            console.error("Projects fetch failed:", err);
+        }
+    },
+
+    stopHandler: async (data) => {
+        try {
+            const [{ apiKey }, { apiSecret }] = JSON.parse(localStorage.getItem("creds"));
+
+            const jsonData = JSON.parse(JSON.stringify(data));
+            const now = new Date();
+
+            const formattedTime = now
+                .toLocaleString('en-GB', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hourCycle: 'h23'
+                })
+                .replace(/\//g, '-')                         // 06-01-2026, 03:56:36
+                .replace(/(\d{2})-(\d{2})-(\d{4})/, '$3-$2-$1') // 2026-01-06, 03:56:36
+                .replace(', ', ' ');                         // remove comma
+            useTimerStore.setState({ endTime: formattedTime })
+            jsonData.time_log.to_time = formattedTime
+
+            console.log("timesheet data", jsonData)
+
+
+            const res = await axiosInstance.post("/api/method/frappetrack.api.timesheet.add_time_log", jsonData,
+                {
+                    headers: {
+                        'Authorization': `token ${apiKey}:${apiSecret}`,
+                    },
+                }
+            )
+            console.log("response from timesheet", res)
+
+            return true;
+        } catch (error) {
+            console.log(
+                "Error while stopping",
+                error
+            )
+            return null
+        }
+    }
     // logout: async () => {
     //     set({ user: null, isAuthenticated: false });
     // },
