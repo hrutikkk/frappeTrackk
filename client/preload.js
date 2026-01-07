@@ -11,7 +11,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   getCredentials: (data) => ipcRenderer.invoke("get-creds", data),
 
-   deleteScreenshots : ()=> {
+  
+  deleteScreenshots : ()=> {
     console.log("IPC sent: delete-screenshot");
     return ipcRenderer.invoke("delete-screenshot");
   }
