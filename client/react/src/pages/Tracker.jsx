@@ -23,6 +23,7 @@ const Tracker = () => {
     const [description, setDescription] = useState(null)
 
     const allSelected = selectedProject && taskByProject && timeSheetValue;
+    console.log(allSelected)
 
     useEffect(() => {
         getProjects()
