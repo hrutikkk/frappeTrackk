@@ -350,6 +350,7 @@ const Tracker = () => {
           </div>
         </div>
 
+
         {/* Screenshot Preview */}
         <div>
           <h4 className="text-slate-700 font-semibold mb-4 mt-10">
@@ -376,6 +377,11 @@ const Tracker = () => {
       </div>
     </div>
   );
+
+
+
+
+
 };
 
 export default Tracker;
