@@ -120,5 +120,4 @@ ipcMain.handle("delete-screenshot", async () => {
     console.error("Error deleting screenshot folder:", error);
     return { success: false, error: error.message };
   }
-}
-)
+});
